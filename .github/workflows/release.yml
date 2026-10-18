@@ -3,46 +3,92 @@ name: Release gem
 on:
   push:
     tags:
-      - "v*"
+      - "v*.*.*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
-  test:
+  release:
+    name: Publish rails-datepicker
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        ruby: ["3.2", "3.3", "3.4"]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: ${{ matrix.ruby }}
-          bundler-cache: true
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - run: npm ci
-      - run: npm test
-      - run: npm run build:css
-      - run: bundle exec rake test
-      - run: gem build rails-datepicker.gemspec
-
-  publish:
-    needs: test
-    runs-on: ubuntu-latest
-    environment: release
+    environment:
+      name: release
+      url: https://rubygems.org/gems/rails-datepicker
     permissions:
       contents: write
-      id-token: write
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out release tag
+        uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           persist-credentials: false
-      - uses: ruby/setup-ruby@v1
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
           bundler-cache: true
-      - uses: rubygems/release-gem@v1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Verify tag matches gem version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          version="$(ruby -Ilib -rrails_datepicker/version -e 'print RailsDatepicker::VERSION')"
+          test "$RELEASE_TAG" = "v${version}" || {
+            echo "Tag ${RELEASE_TAG} does not match gem version ${version}" >&2
+            exit 1
+          }
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Run JavaScript tests
+        run: npm test
+
+      - name: Build CSS
+        run: npm run build:css
+
+      - name: Run Ruby tests
+        run: bundle exec rake test
+
+      - name: Build and validate gem
+        run: |
+          version="$(ruby -Ilib -rrails_datepicker/version -e 'print RailsDatepicker::VERSION')"
+          mkdir -p pkg
+          gem build rails-datepicker.gemspec --output "pkg/rails-datepicker-${version}.gem"
+          gem check "pkg/rails-datepicker-${version}.gem"
+
+      - name: Publish to RubyGems
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        run: |
+          test -n "$GEM_HOST_API_KEY" || {
+            echo "::error::RUBYGEMS_API_KEY is not configured"
+            exit 1
+          }
+          gem push pkg/rails-datepicker-*.gem --host https://rubygems.org </dev/null
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "GitHub release $RELEASE_TAG already exists"
+          else
+            gh release create "$RELEASE_TAG" pkg/*.gem \
+              --verify-tag \
+              --generate-notes
+          fi

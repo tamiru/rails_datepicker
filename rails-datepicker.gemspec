@@ -5,20 +5,28 @@ require_relative "lib/rails_datepicker/version"
 Gem::Specification.new do |spec|
   spec.name = "rails-datepicker"
   spec.version = RailsDatepicker::VERSION
-  spec.authors = ["Tamiru"]
+  spec.authors = ["Tamiru Hailu"]
+  spec.email = ["tamiruhailu@gmail.com"]
   spec.summary = "An accessible Ethiopian and Gregorian datepicker for Rails 8"
   spec.description = "A Rails 8 engine providing a Stimulus 3 and Tailwind CSS 4 datepicker with accurate Ethiopian/Gregorian conversion."
-  spec.homepage = "https://rubygems.org/gems/rails-datepicker"
+  spec.homepage = "https://github.com/tamiru/rails_datepicker"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"
 
-  spec.metadata = { "rubygems_mfa_required" => "true" }
+  spec.metadata = {
+    "homepage_uri" => spec.homepage,
+    "source_code_uri" => "#{spec.homepage}/tree/main",
+    "changelog_uri" => "#{spec.homepage}/blob/main/CHANGELOG.md",
+    "bug_tracker_uri" => "#{spec.homepage}/issues",
+    "funding_uri" => "https://github.com/sponsors/tamiru",
+    "allowed_push_host" => "https://rubygems.org",
+    "rubygems_mfa_required" => "true"
+  }
 
   spec.files = Dir.chdir(__dir__) do
-    Dir["{app,config,lib,test}/**/*", "CHANGELOG.md", "LICENSE.txt", "README.md", "package.json"]
+    Dir["{app,config,lib}/**/*", "CHANGELOG.md", "LICENSE.txt", "README.md", "Rakefile", "package.json", "rails-datepicker.gemspec"]
       .reject do |path|
-        File.directory?(path) ||
-          path.start_with?("test/tmp/", "test/dummy/log/", "test/dummy/storage/", "test/dummy/tmp/")
+        File.directory?(path) || path.match?(%r{(?:^|/)(?:\.idea|log|tmp|storage|pkg)(?:/|$)|\.(?:gem|sqlite3|log)\z|Zone\.Identifier\z})
       end
   end
   spec.require_paths = ["lib"]
