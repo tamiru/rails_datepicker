@@ -1,0 +1,22 @@
+{
+  "name": "rails-datepicker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./calendar": "./app/javascript/rails-datepicker/calendar.js",
+    "./controller": "./app/javascript/controllers/rails_datepicker_controller.js"
+  },
+  "scripts": {
+    "test": "node --test test/javascript/**/*_test.js",
+    "build:css": "tailwindcss -i test/fixtures/tailwind.css -o test/tmp/rails_datepicker.css --minify"
+  },
+  "peerDependencies": {
+    "@hotwired/stimulus": "^3.2.0"
+  },
+  "devDependencies": {
+    "@hotwired/stimulus": "3.2.2",
+    "@tailwindcss/cli": "^4.3.0",
+    "tailwindcss": "^4.3.0"
+  }
+}

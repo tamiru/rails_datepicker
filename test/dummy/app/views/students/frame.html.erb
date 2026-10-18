@@ -1,0 +1,8 @@
+<%= turbo_frame_tag "datepicker_frame" do %>
+  <%= rails_datepicker_field :student, :birth_date,
+    object: @student,
+    calendar: :gregorian,
+    inline: true,
+    theme: :dark,
+    id: "frame_birth_date" %>
+<% end %>

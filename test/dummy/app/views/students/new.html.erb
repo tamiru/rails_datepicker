@@ -1,0 +1,21 @@
+<%= form_with model: @student do |form| %>
+  <%= form.label :name %>
+  <%= form.text_field :name, value: "Test Student" %>
+  <%= form.label :birth_date %>
+  <%= form.datepicker_field :birth_date,
+    calendar: :ethiopian,
+    locale: :am,
+    min: Date.new(2020, 1, 1),
+    max: Date.new(2030, 12, 31),
+    disabled_dates: [Date.new(2023, 9, 13)] %>
+  <%= form.submit %>
+<% end %>
+
+<%= rails_datepicker_field :student, :birth_date, object: @student, calendar: :gregorian, id: "standalone_birth_date" %>
+
+<%= turbo_frame_tag "datepicker_frame" do %>
+  <%= link_to "Replace frame", datepicker_frame_path %>
+<% end %>
+
+<%= rails_datepicker_field :student, :birth_date, object: @student,
+  calendar: :ethiopian, display_calendar: :gregorian, locale: :am, id: "gregorian_result" %>

@@ -1,0 +1,9 @@
+# frozen_string_literal: true
+
+RailsDatepicker.configure do |config|
+  config.default_calendar = :ethiopian
+  config.default_locale = :am
+  config.date_format = "YYYY-MM-DD"
+  config.theme = :auto
+  config.week_start = :sunday
+end

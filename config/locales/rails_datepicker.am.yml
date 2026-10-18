@@ -1,0 +1,12 @@
+am:
+  rails_datepicker:
+    open_calendar: "ቀን መቁጠሪያ ክፈት"
+    choose_date: "ቀን ይምረጡ"
+    previous_year: "ያለፈው ዓመት"
+    previous_month: "ያለፈው ወር"
+    next_month: "ቀጣይ ወር"
+    next_year: "ቀጣይ ዓመት"
+    month: "ወር"
+    year: "ዓመት"
+    today: "ዛሬ"
+    clear: "አጽዳ"

@@ -1,0 +1,12 @@
+/.bundle/
+/.yardoc/
+/coverage/
+/log/
+/node_modules/
+/pkg/
+/test/tmp/
+/test/dummy/log/
+/test/dummy/storage/
+/test/dummy/tmp/
+*.gem
+.DS_Store
