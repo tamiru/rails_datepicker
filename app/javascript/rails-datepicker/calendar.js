@@ -18,6 +18,11 @@ export const WEEKDAYS = {
   am: ["እሑድ", "ሰኞ", "ማክሰኞ", "ረቡዕ", "ሐሙስ", "ዓርብ", "ቅዳሜ"]
 }
 
+export const WEEKDAYS_LONG = {
+  en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  am: WEEKDAYS.am
+}
+
 const LABELS = {
   en: {
     open_calendar: "Open calendar", choose_date: "Choose date",
@@ -25,7 +30,7 @@ const LABELS = {
     month: "Month", year: "Year", today: "Today", clear: "Clear", switchLanguage: "Switch to Amharic",
     ethiopian: "Ethiopian", gregorian: "Gregorian", invalid: "Enter a valid date",
     unavailable: "This date is unavailable", switchToEthiopian: "Switch to Ethiopian calendar",
-    switchToGregorian: "Switch to Gregorian calendar"
+    switchToGregorian: "Switch to Gregorian calendar", today_marker: "today", unavailable_marker: "unavailable"
   },
   am: {
     open_calendar: "ቀን መቁጠሪያ ክፈት", choose_date: "ቀን ይምረጡ",
@@ -33,12 +38,54 @@ const LABELS = {
     month: "ወር", year: "ዓመት", today: "ዛሬ", clear: "አጽዳ", switchLanguage: "ወደ እንግሊዝኛ ቀይር",
     ethiopian: "የኢትዮጵያ", gregorian: "ጎርጎርዮሳዊ", invalid: "ትክክለኛ ቀን ያስገቡ",
     unavailable: "ይህ ቀን አይገኝም", switchToEthiopian: "ወደ ኢትዮጵያ የቀን መቁጠሪያ ቀይር",
-    switchToGregorian: "ወደ ጎርጎርዮሳዊ የቀን መቁጠሪያ ቀይር"
+    switchToGregorian: "ወደ ጎርጎርዮሳዊ የቀን መቁጠሪያ ቀይር", today_marker: "ዛሬ", unavailable_marker: "አይገኝም"
   }
 }
 
 export function labels(locale = "en") {
   return LABELS[locale] || LABELS.en
+}
+
+export function monthName(month, calendar, locale = "en") {
+  const names = MONTHS[calendar][locale] || MONTHS[calendar].en
+  return names[month - 1]
+}
+
+// "Tuesday, Meskerem 15, 2017" / "ማክሰኞ፣ መስከረም 15 ቀን 2017"
+export function longDateLabel(value, calendar, locale = "en") {
+  const date = normalizedDate(value)
+  const { year, month, day } = calendarParts(date, calendar)
+  const weekday = (WEEKDAYS_LONG[locale] || WEEKDAYS_LONG.en)[date.getUTCDay()]
+  const name = monthName(month, calendar, locale)
+  return locale === "am" ? `${weekday}፣ ${name} ${day} ቀን ${year}` : `${weekday}, ${name} ${day}, ${year}`
+}
+
+export function monthYearLabel(parts, calendar, locale = "en") {
+  return `${monthName(parts.month, calendar, locale)} ${parts.year}`
+}
+
+// Walks from `start` in `step`-day increments and returns the first date for
+// which `isRestricted` is false, or null when none is found within `limit` steps.
+export function nextAvailableDate(start, step, isRestricted, limit = 366) {
+  let date = normalizedDate(start)
+  for (let index = 0; index < limit; index += 1) {
+    date = addDays(date, step)
+    if (!isRestricted(date)) return date
+  }
+  return null
+}
+
+// Year options that stay stable while the user navigates: anchored to the
+// supplied years (today, the selection, the visible year), widened by
+// before/after, and clamped to the min/max years when present.
+export function yearRange({ anchors, before, after, minYear = null, maxYear = null }) {
+  const valid = anchors.filter(Number.isInteger)
+  let first = Math.min(...valid) - before
+  let last = Math.max(...valid) + after
+  if (Number.isInteger(minYear)) first = Math.max(first, minYear)
+  if (Number.isInteger(maxYear)) last = Math.min(last, maxYear)
+  first = Math.max(first, 1)
+  return { first, last: Math.max(first, last) }
 }
 
 export function gregorianLeapYear(year) {

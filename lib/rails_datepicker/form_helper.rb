@@ -6,7 +6,7 @@ module RailsDatepicker
   module FormHelper
     FIELD_OPTIONS = %i[
       calendar display_calendar locale date_format format theme week_start ethiopic_numerals
-      inline min max disabled_dates readonly years_before years_after
+      dual_dates inline min max disabled_dates readonly years_before years_after
     ].freeze
 
     def rails_datepicker_field(object_name, method, options = {})
@@ -64,7 +64,7 @@ module RailsDatepicker
           class: ["rdp__input", html_options[:class]].compact.join(" "),
           data: merge_data(html_options[:data],
             rails_datepicker_target: "input",
-            action: "input->rails-datepicker#input blur->rails-datepicker#validate keydown->rails-datepicker#inputKeydown")
+            action: "input->rails-datepicker#input blur->rails-datepicker#validate keydown->rails-datepicker#inputKeydown click->rails-datepicker#inputClick")
         )
         visible_options.delete(:class) if visible_options[:class].empty?
         input = text_field(method, visible_options)
@@ -100,6 +100,7 @@ module RailsDatepicker
         theme: picker_enum!(:theme, options.delete(:theme) || config.theme, Configuration::THEMES),
         week_start: picker_enum!(:week_start, options.delete(:week_start) || config.week_start, Configuration::WEEK_STARTS),
         ethiopic_numerals: !!options.delete(:ethiopic_numerals),
+        dual_dates: options.key?(:dual_dates) ? !!options.delete(:dual_dates) : config.dual_dates,
         inline: !!options.delete(:inline),
         min: min,
         max: max,
@@ -136,6 +137,7 @@ module RailsDatepicker
     def stimulus_data(picker, iso_value)
       {
         controller: "rails-datepicker",
+        action: "focusout->rails-datepicker#focusOut",
         rails_datepicker_calendar_value: picker[:calendar],
         rails_datepicker_display_calendar_value: picker[:display_calendar],
         rails_datepicker_locale_value: picker[:locale],
@@ -143,6 +145,7 @@ module RailsDatepicker
         rails_datepicker_theme_value: picker[:theme],
         rails_datepicker_week_start_value: picker[:week_start],
         rails_datepicker_ethiopic_numerals_value: picker[:ethiopic_numerals],
+        rails_datepicker_dual_dates_value: picker[:dual_dates],
         rails_datepicker_inline_value: picker[:inline],
         rails_datepicker_min_value: picker[:min].to_s,
         rails_datepicker_max_value: picker[:max].to_s,
@@ -180,8 +183,10 @@ module RailsDatepicker
         data: { rails_datepicker_label: "choose_date", rails_datepicker_target: "popover", action: "keydown->rails-datepicker#calendarKeydown" }) do
         @template.safe_join([
           calendar_header(picker[:locale], disabled),
-          @template.content_tag(:div, "", class: "rdp__weekdays", role: "row", data: { rails_datepicker_target: "weekdays" }),
+          # Day buttons carry full date labels, so the visual weekday row is hidden from assistive tech.
+          @template.content_tag(:div, "", class: "rdp__weekdays", aria: { hidden: "true" }, data: { rails_datepicker_target: "weekdays" }),
           @template.content_tag(:div, "", class: "rdp__grid", role: "grid", data: { rails_datepicker_target: "grid" }),
+          @template.content_tag(:div, "", class: "rdp__sr-only", role: "status", aria: { live: "polite" }, data: { rails_datepicker_target: "status" }),
           calendar_footer(picker[:locale], disabled)
         ])
       end
@@ -190,14 +195,14 @@ module RailsDatepicker
     def calendar_header(locale, disabled)
       @template.content_tag(:div, class: "rdp__header") do
         @template.safe_join([
-          nav_button("previous_month", "previousMonth", "‹", locale, disabled),
+          nav_button("previous_month", "previousMonth", "‹", locale, disabled, "previousButton"),
           @template.content_tag(:div, class: "rdp__selectors") do
             @template.safe_join([
               @template.select_tag(nil, "", class: "rdp__select", disabled: disabled, aria: { label: translate("month", locale) }, data: { rails_datepicker_label: "month", rails_datepicker_target: "monthSelect", action: "change->rails-datepicker#selectMonth" }),
               @template.select_tag(nil, "", class: "rdp__select", disabled: disabled, aria: { label: translate("year", locale) }, data: { rails_datepicker_label: "year", rails_datepicker_target: "yearSelect", action: "change->rails-datepicker#selectYear" })
             ])
           end,
-          nav_button("next_month", "nextMonth", "›", locale, disabled)
+          nav_button("next_month", "nextMonth", "›", locale, disabled, "nextButton")
         ])
       end
     end
@@ -205,7 +210,7 @@ module RailsDatepicker
     def calendar_footer(locale, disabled)
       @template.content_tag(:div, class: "rdp__footer") do
         @template.safe_join([
-          @template.button_tag(translate("today", locale), type: "button", class: "rdp__footer-button", disabled: disabled, data: { rails_datepicker_text: "today", action: "rails-datepicker#today" }),
+          @template.button_tag(translate("today", locale), type: "button", class: "rdp__footer-button", disabled: disabled, data: { rails_datepicker_text: "today", rails_datepicker_target: "todayButton", action: "rails-datepicker#today" }),
           @template.button_tag(translate("clear", locale), type: "button", class: "rdp__footer-button", disabled: disabled, data: { rails_datepicker_text: "clear", action: "rails-datepicker#clear" }),
           @template.button_tag("", type: "button", class: "rdp__locale-toggle", disabled: disabled, data: { rails_datepicker_target: "localeToggle", action: "rails-datepicker#switchLocale" }),
           @template.button_tag("", type: "button", class: "rdp__calendar-toggle", disabled: disabled, data: { rails_datepicker_target: "calendarToggle", action: "rails-datepicker#switchCalendar" })
@@ -213,8 +218,8 @@ module RailsDatepicker
       end
     end
 
-    def nav_button(label, action, glyph, locale, disabled)
-      @template.button_tag(glyph, type: "button", class: "rdp__nav", disabled: disabled, aria: { label: translate(label, locale) }, data: { rails_datepicker_label: label, action: "rails-datepicker##{action}" })
+    def nav_button(label, action, glyph, locale, disabled, target)
+      @template.button_tag(glyph, type: "button", class: "rdp__nav", disabled: disabled, aria: { label: translate(label, locale) }, data: { rails_datepicker_label: label, rails_datepicker_target: target, action: "rails-datepicker##{action}" })
     end
 
     def canonical_iso(value)

@@ -74,4 +74,30 @@ class FormHelperTest < ActionView::TestCase
     assert controls.any?
     assert controls.all? { |control| control.key?("disabled") }
   end
+
+  test "renders navigation targets, a live region, and accessible weekday headers" do
+    html = rails_datepicker_field(:student, :birth_date, object: Student.new)
+    fragment = Nokogiri::HTML.fragment(html)
+
+    assert fragment.at_css(".rdp__nav[data-rails-datepicker-target='previousButton']")
+    assert fragment.at_css(".rdp__nav[data-rails-datepicker-target='nextButton']")
+    assert fragment.at_css("[data-rails-datepicker-target='todayButton']")
+    assert_equal "polite", fragment.at_css("[data-rails-datepicker-target='status']")["aria-live"]
+    assert_equal "true", fragment.at_css(".rdp__weekdays")["aria-hidden"]
+    assert_includes fragment.at_css(".rdp")["data-action"], "focusout->rails-datepicker#focusOut"
+    assert_includes fragment.at_css(".rdp__input")["data-action"], "click->rails-datepicker#inputClick"
+  end
+
+  test "dual dates follow configuration unless overridden per field" do
+    default = Nokogiri::HTML.fragment(rails_datepicker_field(:student, :birth_date, object: Student.new))
+    assert_equal "false", default.at_css(".rdp")["data-rails-datepicker-dual-dates-value"]
+
+    RailsDatepicker.configuration.dual_dates = true
+    configured = Nokogiri::HTML.fragment(rails_datepicker_field(:student, :birth_date, object: Student.new))
+    overridden = Nokogiri::HTML.fragment(rails_datepicker_field(:student, :birth_date, object: Student.new, dual_dates: false))
+    assert_equal "true", configured.at_css(".rdp")["data-rails-datepicker-dual-dates-value"]
+    assert_equal "false", overridden.at_css(".rdp")["data-rails-datepicker-dual-dates-value"]
+  ensure
+    RailsDatepicker.configuration.dual_dates = false
+  end
 end

@@ -6,4 +6,6 @@ RailsDatepicker.configure do |config|
   config.date_format = "YYYY-MM-DD"
   config.theme = :auto
   config.week_start = :sunday
+  # Show the other calendar's day number beneath each day in the popup.
+  config.dual_dates = false
 end

@@ -1,12 +1,17 @@
 import { Controller } from "@hotwired/stimulus"
 import {
-  MONTHS, WEEKDAYS, addDays, calendarParts, ethiopianToGregorian,
-  formatDate, labels, monthLength, parseFormatted, parseIso,
-  partsToGregorian, shiftMonth, toIso
+  MONTHS, WEEKDAYS, addDays, calendarParts, encodeEthiopicInteger,
+  ethiopianToGregorian, formatDate, labels, longDateLabel, monthLength,
+  monthYearLabel, nextAvailableDate, parseFormatted, parseIso,
+  partsToGregorian, shiftMonth, toIso, yearRange
 } from "rails-datepicker/calendar"
 
 export default class extends Controller {
-  static targets = ["input", "canonical", "trigger", "popover", "weekdays", "grid", "monthSelect", "yearSelect", "calendarToggle", "localeToggle"]
+  static targets = [
+    "input", "canonical", "trigger", "popover", "weekdays", "grid", "monthSelect", "yearSelect",
+    "calendarToggle", "localeToggle", "previousButton", "nextButton", "todayButton", "status"
+  ]
+
   static values = {
     calendar: { type: String, default: "ethiopian" },
     displayCalendar: String,
@@ -15,6 +20,7 @@ export default class extends Controller {
     theme: { type: String, default: "auto" },
     weekStart: { type: String, default: "sunday" },
     ethiopicNumerals: { type: Boolean, default: false },
+    dualDates: { type: Boolean, default: false },
     inline: { type: Boolean, default: false },
     min: String,
     max: String,
@@ -46,6 +52,8 @@ export default class extends Controller {
     window.removeEventListener("scroll", this.reposition, true)
   }
 
+  // Opening / closing
+
   toggle(event) {
     event.preventDefault()
     this.opened ? this.close() : this.open()
@@ -54,6 +62,7 @@ export default class extends Controller {
   open() {
     if (this.inlineValue || this.inputTarget.disabled) return
     this.opened = true
+    this.viewDate = this.selectedDate || this.todayDate()
     this.popoverTarget.hidden = false
     this.inputTarget.setAttribute("aria-expanded", "true")
     this.render()
@@ -71,56 +80,35 @@ export default class extends Controller {
     if (restoreFocus) (this.hasTriggerTarget ? this.triggerTarget : this.inputTarget).focus()
   }
 
+  inputClick() {
+    if (this.inputTarget.readOnly && !this.opened) this.open()
+  }
+
+  // Closes the popover when keyboard focus leaves the component (e.g. Tab to
+  // the next field). A null relatedTarget is ignored because some browsers
+  // report it while a click on a non-focusable button is still in progress.
+  focusOut(event) {
+    if (!this.opened || this.inlineValue) return
+    const next = event.relatedTarget
+    if (next && !this.element.contains(next)) this.close()
+  }
+
+  handleOutside(event) {
+    if (this.opened && !this.inlineValue && !this.element.contains(event.target)) this.close()
+  }
+
+  reposition() {
+    if (this.opened && !this.inlineValue) this.positionPopover()
+  }
+
+  // Selection
+
   selectDate(event) {
     event.preventDefault()
     const date = this.safeParseIso(event.currentTarget.dataset.iso)
     if (this.inputTarget.disabled || !date || this.restricted(date)) return
     this.commit(date)
     this.close({ restoreFocus: true })
-  }
-
-  switchCalendar(event) {
-    event.preventDefault()
-    if (this.inputTarget.disabled) return
-    const anchor = partsToGregorian({ ...calendarParts(this.viewDate, this.calendarValue), day: 1 }, this.calendarValue)
-    this.calendarValue = this.calendarValue === "ethiopian" ? "gregorian" : "ethiopian"
-    this.viewDate = anchor
-    if (this.selectedDate) this.inputTarget.value = this.formatSelection(this.selectedDate)
-    this.render()
-  }
-
-  switchLocale(event) {
-    event.preventDefault()
-    if (this.inputTarget.disabled) return
-    this.localeValue = this.localeValue === "am" ? "en" : "am"
-    this.render()
-    if (this.inputTarget.validationMessage) this.validate()
-    this.reposition()
-  }
-
-  formatSelection(date) {
-    return formatDate(date, this.formatValue, this.displayCalendarValue || this.calendarValue, this.ethiopicNumeralsValue)
-  }
-
-  previousMonth() { this.navigateMonths(-1) }
-  nextMonth() { this.navigateMonths(1) }
-  previousYear() { this.navigateYears(-1) }
-  nextYear() { this.navigateYears(1) }
-
-  selectMonth(event) {
-    const parts = calendarParts(this.viewDate, this.calendarValue)
-    parts.month = Number(event.currentTarget.value)
-    parts.day = 1
-    this.viewDate = partsToGregorian(parts, this.calendarValue)
-    this.render()
-  }
-
-  selectYear(event) {
-    const parts = calendarParts(this.viewDate, this.calendarValue)
-    parts.year = Number(event.currentTarget.value)
-    parts.day = 1
-    this.viewDate = partsToGregorian(parts, this.calendarValue)
-    this.render()
   }
 
   today(event) {
@@ -136,12 +124,14 @@ export default class extends Controller {
     event.preventDefault()
     if (this.inputTarget.disabled) return
 
+    const changed = Boolean(this.selectedDate)
     this.selectedDate = null
     this.selectedValue = ""
     this.canonicalTarget.value = ""
     this.inputTarget.value = ""
     this.setValidity("")
     this.dispatchChanges()
+    if (changed) this.dispatchSelection(null)
     this.render()
     this.close({ restoreFocus: true })
   }
@@ -166,8 +156,70 @@ export default class extends Controller {
     }
   }
 
+  // Calendar and language switches
+
+  switchCalendar(event) {
+    event.preventDefault()
+    if (this.inputTarget.disabled) return
+    const anchor = partsToGregorian({ ...calendarParts(this.viewDate, this.calendarValue), day: 1 }, this.calendarValue)
+    this.calendarValue = this.calendarValue === "ethiopian" ? "gregorian" : "ethiopian"
+    this.viewDate = anchor
+    if (this.selectedDate) this.inputTarget.value = this.formatSelection(this.selectedDate)
+    this.render()
+    this.announceView()
+  }
+
+  switchLocale(event) {
+    event.preventDefault()
+    if (this.inputTarget.disabled) return
+    this.localeValue = this.localeValue === "am" ? "en" : "am"
+    this.render()
+    if (this.inputTarget.validationMessage) this.validate()
+    this.reposition()
+  }
+
+  formatSelection(date) {
+    return formatDate(date, this.formatValue, this.displayCalendarValue || this.calendarValue, this.ethiopicNumeralsValue)
+  }
+
+  // Month / year navigation
+
+  previousMonth() { this.navigateMonths(-1) }
+  nextMonth() { this.navigateMonths(1) }
+  previousYear() { this.navigateYears(-1) }
+  nextYear() { this.navigateYears(1) }
+
+  selectMonth(event) {
+    const parts = calendarParts(this.viewDate, this.calendarValue)
+    this.showMonth({ year: parts.year, month: Number(event.currentTarget.value) })
+  }
+
+  selectYear(event) {
+    const parts = calendarParts(this.viewDate, this.calendarValue)
+    this.showMonth({ year: Number(event.currentTarget.value), month: parts.month })
+  }
+
+  navigateMonths(amount) {
+    const parts = shiftMonth({ ...calendarParts(this.viewDate, this.calendarValue), day: 1 }, amount, this.calendarValue)
+    this.showMonth(parts)
+  }
+
+  navigateYears(amount) {
+    const parts = calendarParts(this.viewDate, this.calendarValue)
+    this.showMonth({ year: parts.year + amount, month: parts.month })
+  }
+
+  showMonth({ year, month }) {
+    // Pagume does not exist in every year length, but month 13 always does.
+    this.viewDate = partsToGregorian({ year, month, day: 1 }, this.calendarValue)
+    this.render()
+    this.announceView()
+  }
+
+  // Keyboard
+
   inputKeydown(event) {
-    if (event.key === "ArrowDown" || (event.altKey && event.key === "ArrowDown")) {
+    if (event.key === "ArrowDown") {
       event.preventDefault()
       this.open()
     } else if (event.key === "Enter") {
@@ -186,36 +238,49 @@ export default class extends Controller {
     }
     if (!active) return
 
+    const current = parseIso(active.dataset.iso)
+    const offsetInWeek = (Number(active.dataset.weekday) - this.weekStartIndex() + 7) % 7
+    const isRestricted = date => this.restricted(date)
     const moves = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }
     let next
-    if (moves[event.key]) next = addDays(parseIso(active.dataset.iso), moves[event.key])
-    else if (event.key === "Home") next = addDays(parseIso(active.dataset.iso), -((active.dataset.weekday - this.weekStartIndex() + 7) % 7))
-    else if (event.key === "End") next = addDays(parseIso(active.dataset.iso), 6 - ((active.dataset.weekday - this.weekStartIndex() + 7) % 7))
-    else if (event.key === "PageUp" || event.key === "PageDown") {
-      const amount = event.key === "PageUp" ? -1 : 1
-      event.preventDefault()
-      if (event.shiftKey) this.navigateYears(amount)
-      else this.navigateMonths(amount)
-      this.focusPreferredDay()
-      return
+
+    if (moves[event.key]) {
+      // Skip over disabled dates instead of stopping at them.
+      next = nextAvailableDate(current, moves[event.key], isRestricted, 400)
+    } else if (event.key === "Home") {
+      next = nextAvailableDate(addDays(current, -offsetInWeek - 1), 1, isRestricted, 7)
+    } else if (event.key === "End") {
+      next = nextAvailableDate(addDays(current, 7 - offsetInWeek), -1, isRestricted, 7)
+    } else if (event.key === "PageUp" || event.key === "PageDown") {
+      const direction = event.key === "PageUp" ? -1 : 1
+      const monthsPerYear = this.calendarValue === "ethiopian" ? 13 : 12
+      const amount = event.shiftKey ? direction * monthsPerYear : direction
+      const target = partsToGregorian(shiftMonth(calendarParts(current, this.calendarValue), amount, this.calendarValue), this.calendarValue)
+      next = this.restricted(target) ? this.nearestAvailable(target) : target
+      if (!next) {
+        event.preventDefault()
+        return
+      }
     } else return
 
     event.preventDefault()
-    this.focusDate(next)
+    if (next) this.focusDate(next)
   }
 
-  handleOutside(event) {
-    if (this.opened && !this.inlineValue && !this.element.contains(event.target)) this.close()
+  nearestAvailable(date) {
+    if (!this.restricted(date)) return date
+    const isRestricted = candidate => this.restricted(candidate)
+    return nextAvailableDate(date, 1, isRestricted, 31) || nextAvailableDate(date, -1, isRestricted, 31)
   }
 
-  reposition() {
-    if (this.opened && !this.inlineValue) this.positionPopover()
-  }
+  // Rendering
 
   render() {
+    this.clampView()
     this.renderLocale()
     this.renderToggle()
     this.renderSelectors()
+    this.renderNavigation()
     this.renderWeekdays()
     this.renderDays()
   }
@@ -243,49 +308,62 @@ export default class extends Controller {
   }
 
   renderSelectors() {
-    const current = calendarParts(this.viewDate, this.calendarValue)
-    const names = MONTHS[this.calendarValue][this.localeValue] || MONTHS[this.calendarValue].en
-    this.monthSelectTarget.innerHTML = names.map((name, index) => `<option value="${index + 1}"${index + 1 === current.month ? " selected" : ""}>${name}</option>`).join("")
-    const minYear = current.year - this.yearsBeforeValue
-    const maxYear = current.year + this.yearsAfterValue
+    const calendar = this.calendarValue
+    const current = calendarParts(this.viewDate, calendar)
+    const names = MONTHS[calendar][this.localeValue] || MONTHS[calendar].en
+    this.monthSelectTarget.innerHTML = names.map((name, index) => {
+      const month = index + 1
+      const available = this.monthAvailable({ year: current.year, month })
+      return `<option value="${month}"${month === current.month ? " selected" : ""}${available ? "" : " disabled"}>${name}</option>`
+    }).join("")
+
+    // Anchor the range to today and the selection so it does not drift every
+    // time the user picks a different year.
+    const min = this.minDate()
+    const max = this.maxDate()
+    const { first, last } = yearRange({
+      anchors: [this.todayDate(), this.selectedDate, this.viewDate].filter(Boolean).map(date => calendarParts(date, calendar).year),
+      before: this.yearsBeforeValue,
+      after: this.yearsAfterValue,
+      minYear: min ? calendarParts(min, calendar).year : null,
+      maxYear: max ? calendarParts(max, calendar).year : null
+    })
     let years = ""
-    for (let year = maxYear; year >= minYear; year -= 1) years += `<option value="${year}"${year === current.year ? " selected" : ""}>${year}</option>`
+    for (let year = last; year >= first; year -= 1) years += `<option value="${year}"${year === current.year ? " selected" : ""}>${year}</option>`
     this.yearSelectTarget.innerHTML = years
+  }
+
+  renderNavigation() {
+    const disabled = this.inputTarget.disabled
+    const parts = { ...calendarParts(this.viewDate, this.calendarValue), day: 1 }
+    if (this.hasPreviousButtonTarget) {
+      this.previousButtonTarget.disabled = disabled || !this.monthAvailable(shiftMonth(parts, -1, this.calendarValue))
+    }
+    if (this.hasNextButtonTarget) {
+      this.nextButtonTarget.disabled = disabled || !this.monthAvailable(shiftMonth(parts, 1, this.calendarValue))
+    }
+    if (this.hasTodayButtonTarget) {
+      this.todayButtonTarget.disabled = disabled || this.restricted(this.todayDate())
+    }
   }
 
   renderWeekdays() {
     const days = WEEKDAYS[this.localeValue] || WEEKDAYS.en
     const ordered = [...days.slice(this.weekStartIndex()), ...days.slice(0, this.weekStartIndex())]
-    this.weekdaysTarget.innerHTML = ordered.map(day => `<span class="rdp__weekday" role="columnheader">${day}</span>`).join("")
+    this.weekdaysTarget.innerHTML = ordered.map(day => `<span class="rdp__weekday">${day}</span>`).join("")
   }
 
   renderDays() {
-    const parts = calendarParts(this.viewDate, this.calendarValue)
-    const firstDate = partsToGregorian({ year: parts.year, month: parts.month, day: 1 }, this.calendarValue)
+    const calendar = this.calendarValue
+    const otherCalendar = calendar === "ethiopian" ? "gregorian" : "ethiopian"
+    const copy = labels(this.localeValue)
+    const parts = calendarParts(this.viewDate, calendar)
+    const firstDate = partsToGregorian({ year: parts.year, month: parts.month, day: 1 }, calendar)
     const offset = (firstDate.getUTCDay() - this.weekStartIndex() + 7) % 7
-    const count = monthLength(parts.year, parts.month, this.calendarValue)
+    const count = monthLength(parts.year, parts.month, calendar)
     const todayIso = toIso(this.todayDate())
     const selectedIso = this.selectedDate ? toIso(this.selectedDate) : ""
-    const visibleMonth = date => {
-      const value = calendarParts(date, this.calendarValue)
-      return value.year === parts.year && value.month === parts.month
-    }
-    let tabbableIso = ""
-    if (this.selectedDate && visibleMonth(this.selectedDate) && !this.restricted(this.selectedDate)) {
-      tabbableIso = selectedIso
-    } else {
-      const today = this.todayDate()
-      if (visibleMonth(today) && !this.restricted(today)) tabbableIso = todayIso
-    }
-    if (!tabbableIso) {
-      for (let day = 1; day <= count; day += 1) {
-        const date = partsToGregorian({ ...parts, day }, this.calendarValue)
-        if (!this.restricted(date)) {
-          tabbableIso = toIso(date)
-          break
-        }
-      }
-    }
+    const tabbableIso = this.tabbableIso(parts, count, selectedIso, todayIso)
     const cells = []
 
     for (let index = 0; index < Math.ceil((offset + count) / 7) * 7; index += 1) {
@@ -294,45 +372,76 @@ export default class extends Controller {
         cells.push("<span class=\"rdp__day rdp__day--empty\" role=\"gridcell\"></span>")
         continue
       }
-      const date = this.calendarValue === "ethiopian" ? ethiopianToGregorian(parts.year, parts.month, day) : partsToGregorian({ ...parts, day }, "gregorian")
+      const date = calendar === "ethiopian" ? ethiopianToGregorian(parts.year, parts.month, day) : partsToGregorian({ ...parts, day }, "gregorian")
       const iso = toIso(date)
       const disabled = this.restricted(date)
+      const weekday = date.getUTCDay()
       const classes = ["rdp__day"]
       if (iso === todayIso) classes.push("rdp__day--today")
       if (iso === selectedIso) classes.push("rdp__day--selected")
-      cells.push(`<button type="button" class="${classes.join(" ")}" role="gridcell" data-rdp-day data-iso="${iso}" data-weekday="${date.getUTCDay()}" tabindex="${iso === tabbableIso ? "0" : "-1"}" aria-selected="${iso === selectedIso}"${iso === todayIso ? " aria-current=\"date\"" : ""}${disabled ? " disabled aria-disabled=\"true\"" : ""} data-action="rails-datepicker#selectDate">${this.dayLabel(day)}</button>`)
+      if (weekday === 0 || weekday === 6) classes.push("rdp__day--weekend")
+
+      let label = longDateLabel(date, calendar, this.localeValue)
+      let secondary = ""
+      if (this.dualDatesValue) {
+        const otherDay = calendarParts(date, otherCalendar).day
+        label += ` (${longDateLabel(date, otherCalendar, this.localeValue)})`
+        secondary = `<span class="rdp__day-secondary${otherDay === 1 ? " rdp__day-secondary--first" : ""}" aria-hidden="true">${this.numeral(otherDay)}</span>`
+        classes.push("rdp__day--dual")
+      }
+      if (iso === todayIso) label += `, ${copy.today_marker}`
+      if (disabled) label += `, ${copy.unavailable_marker}`
+
+      cells.push(`<button type="button" class="${classes.join(" ")}" role="gridcell" data-rdp-day data-iso="${iso}" data-weekday="${weekday}" tabindex="${iso === tabbableIso ? "0" : "-1"}" aria-label="${label}" aria-selected="${iso === selectedIso}"${iso === todayIso ? " aria-current=\"date\"" : ""}${disabled ? " disabled aria-disabled=\"true\"" : ""} data-action="rails-datepicker#selectDate"><span class="rdp__day-primary">${this.numeral(day)}</span>${secondary}</button>`)
     }
-    this.gridTarget.innerHTML = cells.join("")
+
+    const rows = []
+    for (let index = 0; index < cells.length; index += 7) {
+      rows.push(`<div class="rdp__week" role="row">${cells.slice(index, index + 7).join("")}</div>`)
+    }
+    this.gridTarget.innerHTML = rows.join("")
+    this.gridTarget.setAttribute("aria-label", monthYearLabel(parts, calendar, this.localeValue))
   }
 
-  dayLabel(day) {
-    if (!this.ethiopicNumeralsValue) return day
-    return formatDate(partsToGregorian({ year: 2000, month: 1, day }, "gregorian"), "DD", "gregorian", true).replace(/^0/, "")
+  tabbableIso(parts, count, selectedIso, todayIso) {
+    const calendar = this.calendarValue
+    const visibleMonth = date => {
+      const value = calendarParts(date, calendar)
+      return value.year === parts.year && value.month === parts.month
+    }
+    if (this.selectedDate && visibleMonth(this.selectedDate) && !this.restricted(this.selectedDate)) return selectedIso
+    const today = this.todayDate()
+    if (visibleMonth(today) && !this.restricted(today)) return todayIso
+    for (let day = 1; day <= count; day += 1) {
+      const date = partsToGregorian({ ...parts, day }, calendar)
+      if (!this.restricted(date)) return toIso(date)
+    }
+    return ""
   }
 
-  navigateMonths(amount) {
-    const parts = shiftMonth({ ...calendarParts(this.viewDate, this.calendarValue), day: 1 }, amount, this.calendarValue)
-    this.viewDate = partsToGregorian(parts, this.calendarValue)
-    this.render()
+  numeral(number) {
+    return this.ethiopicNumeralsValue ? encodeEthiopicInteger(number) : String(number)
   }
 
-  navigateYears(amount) {
+  announceView() {
+    if (!this.hasStatusTarget) return
     const parts = calendarParts(this.viewDate, this.calendarValue)
-    parts.year += amount
-    parts.day = 1
-    this.viewDate = partsToGregorian(parts, this.calendarValue)
-    this.render()
+    this.statusTarget.textContent = monthYearLabel(parts, this.calendarValue, this.localeValue)
   }
+
+  // State
 
   commit(date) {
+    const iso = toIso(date)
+    const changed = iso !== (this.selectedDate ? toIso(this.selectedDate) : "")
     this.selectedDate = date
     this.viewDate = date
-    const iso = toIso(date)
     this.selectedValue = iso
     this.canonicalTarget.value = iso
     this.inputTarget.value = this.formatSelection(date)
     this.setValidity("")
     this.dispatchChanges()
+    if (changed) this.dispatchSelection(date)
     this.render()
   }
 
@@ -343,11 +452,27 @@ export default class extends Controller {
     }
   }
 
+  // Emits `rails-datepicker:change` with both calendar representations so host
+  // controllers do not need to re-implement the conversion.
+  dispatchSelection(date) {
+    this.dispatch("change", {
+      detail: date ? {
+        iso: toIso(date),
+        date,
+        gregorian: calendarParts(date, "gregorian"),
+        ethiopian: calendarParts(date, "ethiopian"),
+        formatted: this.inputTarget.value
+      } : { iso: "", date: null, gregorian: null, ethiopian: null, formatted: "" }
+    })
+  }
+
   clearWithoutEvent() {
+    const changed = Boolean(this.selectedDate)
     this.selectedDate = null
     this.selectedValue = ""
     this.canonicalTarget.value = ""
     this.setValidity("")
+    if (changed) this.dispatchSelection(null)
     this.render()
   }
 
@@ -357,6 +482,30 @@ export default class extends Controller {
       (this.hasMinValue && this.minValue !== "" && iso < this.minValue) ||
       (this.hasMaxValue && this.maxValue !== "" && iso > this.maxValue) ||
       this.disabledSet.has(iso)
+  }
+
+  minDate() { return this.hasMinValue ? this.safeParseIso(this.minValue) : null }
+  maxDate() { return this.hasMaxValue ? this.safeParseIso(this.maxValue) : null }
+
+  // True when any part of the month falls inside min/max.
+  monthAvailable({ year, month }) {
+    const calendar = this.calendarValue
+    const length = monthLength(year, month, calendar)
+    if (!length) return false
+    const min = this.minDate()
+    const max = this.maxDate()
+    if (max && toIso(partsToGregorian({ year, month, day: 1 }, calendar)) > toIso(max)) return false
+    if (min && toIso(partsToGregorian({ year, month, day: length }, calendar)) < toIso(min)) return false
+    return true
+  }
+
+  // Keeps the visible month inside min/max so year/month jumps cannot strand
+  // the user on a month with no selectable dates.
+  clampView() {
+    const min = this.minDate()
+    const max = this.maxDate()
+    if (min && this.viewDate < min) this.viewDate = min
+    if (max && this.viewDate > max) this.viewDate = max
   }
 
   setValidity(message) {
@@ -391,6 +540,7 @@ export default class extends Controller {
     if (targetParts.year !== currentParts.year || targetParts.month !== currentParts.month) {
       this.viewDate = date
       this.render()
+      this.announceView()
     }
     const target = this.gridTarget.querySelector(`[data-iso="${toIso(date)}"]:not(:disabled)`)
     target?.focus()

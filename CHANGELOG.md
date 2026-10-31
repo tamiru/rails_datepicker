@@ -4,12 +4,20 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+### Added
+
+- `dual_dates` field option and configuration setting that shows the other calendar's day number beneath each day.
+- `rails-datepicker:change` event carrying ISO, Gregorian, Ethiopian, and formatted values.
+- Full date labels on day buttons, ARIA grid rows, and a live region announcing month changes.
+
 ### Changed
 
+- Year dropdown is anchored to today and the selection and clamped to `min`/`max`; out-of-range months and the previous/next/Today buttons are disabled.
+- Keyboard navigation skips unavailable dates, and Page Up/Down keep the day of the month.
+- The popup closes when focus leaves the component, reopens on the selected month, and opens when a read-only field is clicked.
 - Made popup calendars compact and independent of the form field width.
 - Added an English/Amharic switch for all calendar controls and labels.
 - Added `display_calendar` so Ethiopian calendar selection can display Gregorian results.
-
 - Renamed the gem from `stimulus-datepicker` to `rails-datepicker`, including its Ruby namespace, generator, Stimulus identifier, and asset names.
 - Made Ethiopian/Gregorian conversion accurate across Gregorian century boundaries.
 - Applied each field's locale to server-rendered labels and preserved caller-supplied ARIA descriptions.

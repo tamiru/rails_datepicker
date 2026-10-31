@@ -7,7 +7,7 @@ module RailsDatepicker
     THEMES = %i[auto light dark].freeze
     WEEK_STARTS = %i[sunday monday].freeze
 
-    attr_reader :default_calendar, :default_locale, :date_format, :theme, :week_start
+    attr_reader :default_calendar, :default_locale, :date_format, :theme, :week_start, :dual_dates
 
     def initialize
       @default_calendar = :ethiopian
@@ -15,6 +15,11 @@ module RailsDatepicker
       @date_format = "YYYY-MM-DD"
       @theme = :auto
       @week_start = :sunday
+      @dual_dates = false
+    end
+
+    def dual_dates=(value)
+      @dual_dates = !!value
     end
 
     def default_calendar=(value)
