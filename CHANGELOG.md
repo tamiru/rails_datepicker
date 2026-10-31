@@ -9,10 +9,10 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - `dual_dates` field option and configuration setting that shows the other calendar's day number beneath each day.
 - `rails-datepicker:change` event carrying ISO, Gregorian, Ethiopian, and formatted values.
 - Full date labels on day buttons, ARIA grid rows, and a live region announcing month changes.
-- Ruby 4.0 support, tested in CI alongside Ruby 3.2 to 3.4.
 
 ### Changed
 
+- Requires Ruby 4.0 or newer; CI and releases run on Ruby 4.0.
 - Year dropdown is anchored to today and the selection and clamped to `min`/`max`; out-of-range months and the previous/next/Today buttons are disabled.
 - Keyboard navigation skips unavailable dates, and Page Up/Down keep the day of the month.
 - The popup closes when focus leaves the component, reopens on the selected month, and opens when a read-only field is clicked.
@@ -28,6 +28,7 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 ### Fixed
 
 - Completed the lockfile checksums so frozen `bundle install` in CI no longer aborts.
+- Popover sizing no longer depends on Tailwind's preflight, so the popup is exactly 18rem wide in every host app.
 
 ## 0.1.0 - 2026-10-15
 

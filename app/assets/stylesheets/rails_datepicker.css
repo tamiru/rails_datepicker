@@ -10,6 +10,7 @@
     --rdp-danger: #dc2626;
     position: relative;
     width: 100%;
+    box-sizing: border-box;
     color: var(--rdp-fg);
     font-family: ui-sans-serif, system-ui, sans-serif;
   }
@@ -42,6 +43,8 @@
   .rdp__trigger:hover { color: var(--rdp-accent); background: var(--rdp-hover); }
   .rdp__trigger:focus-visible, .rdp__nav:focus-visible, .rdp__day:focus-visible, .rdp__footer-button:focus-visible, .rdp__locale-toggle:focus-visible, .rdp__calendar-toggle:focus-visible { outline: 2px solid var(--rdp-accent); outline-offset: 2px; }
   .rdp__icon { width: 1.125rem; height: 1.125rem; }
+  /* Sizing does not depend on Tailwind's preflight being present. */
+  .rdp *, .rdp *::before, .rdp *::after { box-sizing: border-box; }
 
   .rdp__popover {
     position: fixed; z-index: 1000; width: 18rem; border: 1px solid var(--rdp-border); border-radius: .75rem;

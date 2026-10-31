@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
   spec.description = "A Rails 8 engine providing a Stimulus 3 and Tailwind CSS 4 datepicker with accurate Ethiopian/Gregorian conversion."
   spec.homepage = "https://github.com/tamiru/rails_datepicker"
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 3.2.0"
+  spec.required_ruby_version = ">= 4.0.0"
 
   spec.metadata = {
     "homepage_uri" => spec.homepage,
