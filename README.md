@@ -177,9 +177,21 @@ The test suite includes a Rails 8 dummy application and covers conversion, leap 
 
 ## Publishing
 
-Build locally with `gem build rails-datepicker.gemspec`. Review the gem contents with `gem contents --show-install-dir rails-datepicker` after installing the artifact. Enable MFA on the RubyGems account before publishing. The gemspec requires MFA.
+A matching `v*.*.*` tag runs the release workflow: it verifies the tag against the gem and npm versions, runs the JavaScript and Ruby suites on Ruby 4.0, builds and validates the gem, publishes it to RubyGems, and creates a GitHub release with the `.gem` attached.
 
-The repository does not contain any automated publish step. Publishing to RubyGems and pushing to GitHub must be performed explicitly by a maintainer.
+**Required secret** in the `release` environment (Settings, Environments, `release`):
+
+| Secret | Description |
+|---|---|
+| `RUBYGEMS_API_KEY` | Push-only key scoped to `rails-datepicker` from an account with MFA enabled |
+
+```bash
+# Release
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+Build locally with `gem build rails-datepicker.gemspec` and review the contents with `gem contents --show-install-dir rails-datepicker` after installing the artifact. The gemspec requires MFA on the RubyGems account.
 
 ## License
 
