@@ -4,7 +4,7 @@
 
 ## Requirements
 
-- Ruby 3.2 or newer
+- Ruby 3.2 or newer, including Ruby 4.0 (CI runs 3.2, 3.3, 3.4, and 4.0)
 - Rails 8.0
 - Stimulus 3 and Turbo
 - Tailwind CSS 4

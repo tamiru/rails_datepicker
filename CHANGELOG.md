@@ -9,6 +9,7 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - `dual_dates` field option and configuration setting that shows the other calendar's day number beneath each day.
 - `rails-datepicker:change` event carrying ISO, Gregorian, Ethiopian, and formatted values.
 - Full date labels on day buttons, ARIA grid rows, and a live region announcing month changes.
+- Ruby 4.0 support, tested in CI alongside Ruby 3.2 to 3.4.
 
 ### Changed
 
@@ -23,6 +24,10 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Applied each field's locale to server-rendered labels and preserved caller-supplied ARIA descriptions.
 - Made disabled inline calendars inert and ensured unconstrained calendars keep selectable dates.
 - Added Puma as a declared development dependency so the browser test suite can boot.
+
+### Fixed
+
+- Completed the lockfile checksums so frozen `bundle install` in CI no longer aborts.
 
 ## 0.1.0 - 2026-10-15
 
