@@ -12,6 +12,7 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- Refreshed the calendar design: self-contained button and select resets, softer popover with an open animation, pill footer controls, a today marker dot, custom dropdown chevrons, and refined dark theme tokens.
 - Requires Ruby 4.0 or newer; CI and releases run on Ruby 4.0.
 - Year dropdown is anchored to today and the selection and clamped to `min`/`max`; out-of-range months and the previous/next/Today buttons are disabled.
 - Keyboard navigation skips unavailable dates, and Page Up/Down keep the day of the month.
