@@ -1,0 +1,5 @@
+pin "application"
+pin "@hotwired/stimulus", to: "stimulus.min.js"
+pin "@hotwired/turbo-rails", to: "turbo.min.js"
+pin "rails-datepicker/calendar", to: "rails-datepicker/calendar.js"
+pin "rails-datepicker/controller", to: "controllers/rails_datepicker_controller.js"

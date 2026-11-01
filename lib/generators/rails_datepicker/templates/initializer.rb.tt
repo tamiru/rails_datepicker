@@ -1,0 +1,14 @@
+# frozen_string_literal: true
+
+RailsDatepicker.configure do |config|
+  config.default_calendar = :ethiopian
+  config.default_locale = :am
+  config.date_format = "YYYY-MM-DD"
+  config.theme = :auto
+  config.week_start = :sunday
+  # Show the other calendar's day number beneath each day in the popup.
+  config.dual_dates = false
+  # Tie the language to the calendar: Ethiopian in Amharic, Gregorian in English.
+  # The calendar switch shows flags and the separate language switch is hidden.
+  config.locale_follows_calendar = false
+end

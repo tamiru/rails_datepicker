@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Rails Datepicker test</title>
+    <%= csrf_meta_tags %>
+    <%= javascript_importmap_tags if respond_to?(:javascript_importmap_tags) %>
+    <%= stylesheet_link_tag "rails_datepicker", "data-turbo-track": "reload" %>
+  </head>
+  <body><%= yield %></body>
+</html>
