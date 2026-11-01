@@ -102,10 +102,10 @@
   .rdp__nav:hover:not(:disabled) { background: var(--rdp-hover); color: var(--rdp-accent); }
   .rdp__nav:active:not(:disabled) { transform: scale(.94); }
   .rdp__nav:disabled { opacity: .3; }
-  .rdp__selectors { display: grid; grid-template-columns: minmax(0, 1fr) 5rem; gap: .375rem; }
+  .rdp__selectors { display: grid; grid-template-columns: minmax(0, 1fr) 4.5rem; gap: .375rem; }
   .rdp__select {
     appearance: none; -webkit-appearance: none; min-width: 0; height: 2rem; border: 1px solid var(--rdp-border);
-    border-radius: .5rem; background: var(--rdp-bg); color: var(--rdp-fg); padding: 0 1.25rem 0 .5rem;
+    border-radius: .5rem; background: var(--rdp-bg); color: var(--rdp-fg); padding: 0 1.125rem 0 .5rem;
     font-size: .8125rem; font-weight: 600; cursor: pointer; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
     background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: right .375rem center;
