@@ -4,9 +4,14 @@ require "json"
 
 module RailsDatepicker
   module FormHelper
+    FLAGS = {
+      ethiopian: '<svg viewBox="0 0 20 14" focusable="false"><rect width="20" height="14" fill="#078930"/><rect y="4.67" width="20" height="4.67" fill="#FCDD09"/><rect y="9.33" width="20" height="4.67" fill="#DA121A"/><circle cx="10" cy="7" r="3.7" fill="#0F47AF"/><path d="M10 4.2l1.65 5.07-4.31-3.14h5.32l-4.31 3.14z" fill="#FCDD09"/></svg>',
+      gregorian: '<svg viewBox="0 0 20 14" focusable="false"><rect width="20" height="14" fill="#012169"/><path d="M0 0l20 14M20 0L0 14" stroke="#fff" stroke-width="2.8"/><path d="M0 0l20 14M20 0L0 14" stroke="#C8102E" stroke-width="1"/><path d="M10 0v14M0 7h20" stroke="#fff" stroke-width="4"/><path d="M10 0v14M0 7h20" stroke="#C8102E" stroke-width="2.2"/></svg>'
+    }.freeze
+
     FIELD_OPTIONS = %i[
       calendar display_calendar locale date_format format theme week_start ethiopic_numerals
-      dual_dates inline min max disabled_dates readonly years_before years_after
+      dual_dates locale_follows_calendar inline min max disabled_dates readonly years_before years_after
     ].freeze
 
     def rails_datepicker_field(object_name, method, options = {})
@@ -91,11 +96,15 @@ module RailsDatepicker
       years_after = Integer(options.delete(:years_after) || 20)
       raise ArgumentError, "year ranges must be non-negative" if years_before.negative? || years_after.negative?
 
-      calendar = options.delete(:calendar) || config.default_calendar
+      calendar = picker_enum!(:calendar, options.delete(:calendar) || config.default_calendar, Configuration::CALENDARS)
+      locale_follows_calendar = options.key?(:locale_follows_calendar) ? !!options.delete(:locale_follows_calendar) : config.locale_follows_calendar
+      requested_locale = options.delete(:locale) || config.default_locale
+      locale = locale_follows_calendar ? locale_for_calendar(calendar) : picker_enum!(:locale, requested_locale, Configuration::LOCALES)
       {
-        calendar: picker_enum!(:calendar, calendar, Configuration::CALENDARS),
+        calendar: calendar,
         display_calendar: (picker_enum!(:display_calendar, options.delete(:display_calendar), Configuration::CALENDARS) if options[:display_calendar]),
-        locale: picker_enum!(:locale, options.delete(:locale) || config.default_locale, Configuration::LOCALES),
+        locale: locale,
+        locale_follows_calendar: locale_follows_calendar,
         date_format: date_format,
         theme: picker_enum!(:theme, options.delete(:theme) || config.theme, Configuration::THEMES),
         week_start: picker_enum!(:week_start, options.delete(:week_start) || config.week_start, Configuration::WEEK_STARTS),
@@ -146,6 +155,7 @@ module RailsDatepicker
         rails_datepicker_week_start_value: picker[:week_start],
         rails_datepicker_ethiopic_numerals_value: picker[:ethiopic_numerals],
         rails_datepicker_dual_dates_value: picker[:dual_dates],
+        rails_datepicker_locale_follows_calendar_value: picker[:locale_follows_calendar],
         rails_datepicker_inline_value: picker[:inline],
         rails_datepicker_min_value: picker[:min].to_s,
         rails_datepicker_max_value: picker[:max].to_s,
@@ -187,7 +197,7 @@ module RailsDatepicker
           @template.content_tag(:div, "", class: "rdp__weekdays", aria: { hidden: "true" }, data: { rails_datepicker_target: "weekdays" }),
           @template.content_tag(:div, "", class: "rdp__grid", role: "grid", data: { rails_datepicker_target: "grid" }),
           @template.content_tag(:div, "", class: "rdp__sr-only", role: "status", aria: { live: "polite" }, data: { rails_datepicker_target: "status" }),
-          calendar_footer(picker[:locale], disabled)
+          calendar_footer(picker, disabled)
         ])
       end
     end
@@ -207,15 +217,31 @@ module RailsDatepicker
       end
     end
 
-    def calendar_footer(locale, disabled)
+    def calendar_footer(picker, disabled)
+      locale = picker[:locale]
       @template.content_tag(:div, class: "rdp__footer") do
         @template.safe_join([
           @template.button_tag(translate("today", locale), type: "button", class: "rdp__footer-button", disabled: disabled, data: { rails_datepicker_text: "today", rails_datepicker_target: "todayButton", action: "rails-datepicker#today" }),
           @template.button_tag(translate("clear", locale), type: "button", class: "rdp__footer-button", disabled: disabled, data: { rails_datepicker_text: "clear", action: "rails-datepicker#clear" }),
-          @template.button_tag("", type: "button", class: "rdp__locale-toggle", disabled: disabled, data: { rails_datepicker_target: "localeToggle", action: "rails-datepicker#switchLocale" }),
-          @template.button_tag("", type: "button", class: "rdp__calendar-toggle", disabled: disabled, data: { rails_datepicker_target: "calendarToggle", action: "rails-datepicker#switchCalendar" })
+          @template.button_tag("", type: "button", class: "rdp__locale-toggle", disabled: disabled, hidden: picker[:locale_follows_calendar],
+            data: { rails_datepicker_target: "localeToggle", action: "rails-datepicker#switchLocale" }),
+          @template.button_tag(calendar_flags(picker[:calendar]), type: "button", class: "rdp__calendar-toggle", disabled: disabled,
+            data: { rails_datepicker_target: "calendarToggle", action: "rails-datepicker#switchCalendar" })
         ])
       end
+    end
+
+    # Segmented flag control: Ethiopia for the Ethiopian calendar and the United
+    # Kingdom for the Gregorian calendar, with the active calendar highlighted.
+    def calendar_flags(active)
+      @template.safe_join(RailsDatepicker::Configuration::CALENDARS.map do |calendar|
+        classes = ["rdp__flag", ("rdp__flag--active" if calendar == active)].compact.join(" ")
+        @template.content_tag(:span, RailsDatepicker::FormHelper::FLAGS.fetch(calendar).html_safe, class: classes, data: { rdp_flag: calendar }, aria: { hidden: "true" })
+      end)
+    end
+
+    def locale_for_calendar(calendar)
+      calendar == :ethiopian ? :am : :en
     end
 
     def nav_button(label, action, glyph, locale, disabled, target)

@@ -21,6 +21,7 @@ export default class extends Controller {
     weekStart: { type: String, default: "sunday" },
     ethiopicNumerals: { type: Boolean, default: false },
     dualDates: { type: Boolean, default: false },
+    localeFollowsCalendar: { type: Boolean, default: false },
     inline: { type: Boolean, default: false },
     min: String,
     max: String,
@@ -163,10 +164,13 @@ export default class extends Controller {
     if (this.inputTarget.disabled) return
     const anchor = partsToGregorian({ ...calendarParts(this.viewDate, this.calendarValue), day: 1 }, this.calendarValue)
     this.calendarValue = this.calendarValue === "ethiopian" ? "gregorian" : "ethiopian"
+    if (this.localeFollowsCalendarValue) this.localeValue = this.calendarValue === "ethiopian" ? "am" : "en"
     this.viewDate = anchor
     if (this.selectedDate) this.inputTarget.value = this.formatSelection(this.selectedDate)
     this.render()
     this.announceView()
+    if (this.inputTarget.validationMessage) this.validate()
+    this.reposition()
   }
 
   switchLocale(event) {
@@ -295,6 +299,7 @@ export default class extends Controller {
       element.textContent = copy[element.dataset.railsDatepickerText]
     }
     if (this.hasLocaleToggleTarget) {
+      this.localeToggleTarget.hidden = this.localeFollowsCalendarValue
       this.localeToggleTarget.textContent = this.localeValue === "am" ? "English" : "አማርኛ"
       this.localeToggleTarget.setAttribute("aria-label", copy.switchLanguage)
     }
@@ -303,8 +308,12 @@ export default class extends Controller {
   renderToggle() {
     const next = this.calendarValue === "ethiopian" ? "gregorian" : "ethiopian"
     const copy = labels(this.localeValue)
-    this.calendarToggleTarget.textContent = copy[next]
-    this.calendarToggleTarget.setAttribute("aria-label", copy[`switchTo${next[0].toUpperCase()}${next.slice(1)}`])
+    const label = copy[`switchTo${next[0].toUpperCase()}${next.slice(1)}`]
+    for (const flag of this.calendarToggleTarget.querySelectorAll("[data-rdp-flag]")) {
+      flag.classList.toggle("rdp__flag--active", flag.dataset.rdpFlag === this.calendarValue)
+    }
+    this.calendarToggleTarget.setAttribute("aria-label", label)
+    this.calendarToggleTarget.title = label
   }
 
   renderSelectors() {

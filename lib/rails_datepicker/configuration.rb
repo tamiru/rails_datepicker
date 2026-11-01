@@ -7,7 +7,8 @@ module RailsDatepicker
     THEMES = %i[auto light dark].freeze
     WEEK_STARTS = %i[sunday monday].freeze
 
-    attr_reader :default_calendar, :default_locale, :date_format, :theme, :week_start, :dual_dates
+    attr_reader :default_calendar, :default_locale, :date_format, :theme, :week_start, :dual_dates,
+      :locale_follows_calendar
 
     def initialize
       @default_calendar = :ethiopian
@@ -16,10 +17,17 @@ module RailsDatepicker
       @theme = :auto
       @week_start = :sunday
       @dual_dates = false
+      @locale_follows_calendar = false
     end
 
     def dual_dates=(value)
       @dual_dates = !!value
+    end
+
+    # When true the language follows the calendar: Ethiopian uses Amharic and
+    # Gregorian uses English, and the separate language switch is hidden.
+    def locale_follows_calendar=(value)
+      @locale_follows_calendar = !!value
     end
 
     def default_calendar=(value)

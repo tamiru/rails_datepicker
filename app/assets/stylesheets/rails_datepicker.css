@@ -102,13 +102,13 @@
   .rdp__nav:hover:not(:disabled) { background: var(--rdp-hover); color: var(--rdp-accent); }
   .rdp__nav:active:not(:disabled) { transform: scale(.94); }
   .rdp__nav:disabled { opacity: .3; }
-  .rdp__selectors { display: grid; grid-template-columns: minmax(0, 1fr) 5.5rem; gap: .375rem; }
+  .rdp__selectors { display: grid; grid-template-columns: minmax(0, 1fr) 5rem; gap: .375rem; }
   .rdp__select {
     appearance: none; -webkit-appearance: none; min-width: 0; height: 2rem; border: 1px solid var(--rdp-border);
-    border-radius: .5rem; background: var(--rdp-bg); color: var(--rdp-fg); padding: 0 1.375rem 0 .5rem;
+    border-radius: .5rem; background: var(--rdp-bg); color: var(--rdp-fg); padding: 0 1.25rem 0 .5rem;
     font-size: .8125rem; font-weight: 600; cursor: pointer; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
     background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right .5rem center;
+    background-repeat: no-repeat; background-position: right .375rem center;
     transition: border-color .15s ease, background-color .15s ease;
   }
   .rdp__select:hover:not(:disabled) { border-color: color-mix(in srgb, var(--rdp-accent) 50%, var(--rdp-border)); background-color: var(--rdp-hover); }
@@ -169,6 +169,16 @@
   }
   .rdp__locale-toggle:disabled, .rdp__calendar-toggle:disabled { opacity: .4; }
   .rdp__locale-toggle { margin-inline-start: auto; }
+  .rdp__locale-toggle[hidden] { display: none; }
+  .rdp__locale-toggle[hidden] ~ .rdp__calendar-toggle { margin-inline-start: auto; }
+  .rdp__calendar-toggle { gap: .125rem; padding: .125rem; }
+  .rdp__flag {
+    display: inline-grid; place-items: center; width: 1.75rem; height: 1.375rem; border-radius: 9999px;
+    opacity: .45; filter: saturate(.5); transition: opacity .15s ease, filter .15s ease, background-color .15s ease;
+  }
+  .rdp__flag svg { width: 1.25rem; height: .875rem; border-radius: .1875rem; box-shadow: 0 0 0 1px rgb(15 23 42 / .12); }
+  .rdp__flag--active { opacity: 1; filter: none; background: var(--rdp-hover); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rdp-accent) 45%, transparent); }
+  .rdp__calendar-toggle:hover:not(:disabled) .rdp__flag:not(.rdp__flag--active) { opacity: .75; }
 
   /* Dark theme */
   .rdp--dark, .dark .rdp--auto {

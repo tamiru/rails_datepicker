@@ -15,8 +15,8 @@ class FormSubmissionTest < ActionDispatch::IntegrationTest
     get new_student_path
 
     assert_response :success
-    assert_select "[data-controller='rails-datepicker']", count: 3
-    assert_select "input[type='hidden'][name='student[birth_date]'][value='2023-09-12']", count: 3
-    assert_select "input.rdp__input:not([name])", count: 3
+    assert_select "[data-controller='rails-datepicker']", count: 4
+    assert_select "input[type='hidden'][name='student[birth_date]'][value='2023-09-12']", count: 4
+    assert_select "input.rdp__input:not([name])", count: 4
   end
 end

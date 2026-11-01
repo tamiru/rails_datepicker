@@ -19,3 +19,6 @@
 
 <%= rails_datepicker_field :student, :birth_date, object: @student,
   calendar: :ethiopian, display_calendar: :gregorian, locale: :am, id: "gregorian_result" %>
+
+<%= rails_datepicker_field :student, :birth_date, object: @student,
+  calendar: :ethiopian, locale_follows_calendar: true, id: "linked_locale" %>

@@ -88,6 +88,25 @@ class FormHelperTest < ActionView::TestCase
     assert_includes fragment.at_css(".rdp__input")["data-action"], "click->rails-datepicker#inputClick"
   end
 
+  test "renders flag toggle and derives the locale from the calendar when linked" do
+    html = rails_datepicker_field(:student, :birth_date, object: Student.new, calendar: :gregorian, locale: :am, locale_follows_calendar: true)
+    fragment = Nokogiri::HTML.fragment(html)
+    picker = fragment.at_css(".rdp")
+
+    assert_equal "en", picker["lang"]
+    assert_equal "true", picker["data-rails-datepicker-locale-follows-calendar-value"]
+    assert_equal "en", picker["data-rails-datepicker-locale-value"]
+    assert fragment.at_css(".rdp__locale-toggle").key?("hidden")
+    flags = fragment.css(".rdp__calendar-toggle .rdp__flag")
+    assert_equal %w[ethiopian gregorian], flags.map { |flag| flag["data-rdp-flag"] }
+    assert_equal ["gregorian"], flags.select { |flag| flag["class"].include?("rdp__flag--active") }.map { |flag| flag["data-rdp-flag"] }
+    assert flags.all? { |flag| flag.at_css("svg") }
+
+    unlinked = Nokogiri::HTML.fragment(rails_datepicker_field(:student, :birth_date, object: Student.new, calendar: :gregorian, locale: :am))
+    assert_equal "am", unlinked.at_css(".rdp")["lang"]
+    refute unlinked.at_css(".rdp__locale-toggle").key?("hidden")
+  end
+
   test "dual dates follow configuration unless overridden per field" do
     default = Nokogiri::HTML.fragment(rails_datepicker_field(:student, :birth_date, object: Student.new))
     assert_equal "false", default.at_css(".rdp")["data-rails-datepicker-dual-dates-value"]

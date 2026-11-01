@@ -2,6 +2,16 @@
 
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+### Added
+
+- `locale_follows_calendar` field option and configuration setting that shows the Ethiopian calendar in Amharic and the Gregorian calendar in English, hiding the separate language switch.
+
+### Changed
+
+- The calendar switch is now a segmented control showing the Ethiopian and British flags with the active calendar highlighted.
+
 ## 0.2.1 - 2026-11-01
 
 ### Changed

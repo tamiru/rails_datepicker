@@ -49,6 +49,24 @@ class DatepickerTest < ApplicationSystemTestCase
     assert_equal "2024-02-29", picker.find("input[type='hidden']", visible: :all).value
   end
 
+  test "switches language together with the calendar when linked" do
+    picker = find(".rdp:has(#linked_locale)")
+    assert_equal "am", picker["lang"]
+    picker.find(".rdp__trigger").click
+    assert picker.find("[data-rails-datepicker-target='localeToggle']", visible: :hidden)
+    assert picker.find(".rdp__flag--active")["data-rdp-flag"] == "ethiopian"
+
+    picker.find("[data-rails-datepicker-target='calendarToggle']").click
+    assert_equal "en", picker["lang"]
+    assert_equal "Today", picker.find("[data-action='rails-datepicker#today']").text
+    assert_equal "gregorian", picker.find(".rdp__flag--active")["data-rdp-flag"]
+    assert_equal "2023-09-12", picker.find("input[type='hidden']", visible: :all).value
+
+    picker.find("[data-rails-datepicker-target='calendarToggle']").click
+    assert_equal "am", picker["lang"]
+    assert_equal "ዛሬ", picker.find("[data-action='rails-datepicker#today']").text
+  end
+
   test "supports independent instances and disabled dates" do
     pickers = all("[data-controller='rails-datepicker']")
     pickers.first.find("[data-rails-datepicker-target='trigger']").click
